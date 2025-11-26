@@ -1,31 +1,51 @@
-import { Facebook, Instagram, Linkedin, Youtube } from "lucide-react";
+import { Facebook, Github, Linkedin, Slack, Youtube } from "lucide-react";
 import React from "react";
-import { cn } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
-
-const socialLinks = [
-  { title: "Instagram", href: "", icon: <Instagram className="w-5 h-5" /> },
-  { title: "Youtube", href: "", icon: <Youtube className="w-5 h-5" /> },
-  { title: "FaceBook", href: "", icon: <Facebook className="w-5 h-5" /> },
-  { title: "Linked In", href: "", icon: <Linkedin className="w-5 h-5" /> },
-];
-interface props {
+interface Props {
   className?: string;
   iconClassName?: string;
   tooltipClassName?: string;
 }
+const socialLink = [
+  {
+    title: "Youtube",
+    href: "https://www.youtube.com/@reactjsBD",
+    icon: <Youtube className="w-5 h-5" />,
+  },
+  {
+    title: "Github",
+    href: "https://www.youtube.com/@reactjsBD",
+    icon: <Github className="w-5 h-5" />,
+  },
+  {
+    title: "Linkedin",
+    href: "https://www.youtube.com/@reactjsBD",
+    icon: <Linkedin className="w-5 h-5" />,
+  },
+  {
+    title: "Facebook",
+    href: "https://www.youtube.com/@reactjsBD",
+    icon: <Facebook className="w-5 h-5" />,
+  },
+  {
+    title: "Slack",
+    href: "https://www.youtube.com/@reactjsBD",
+    icon: <Slack className="w-5 h-5" />,
+  },
+];
 
-const SocialMedia = ({ className, iconClassName, tooltipClassName }: props) => {
+const SocialMedia = ({ className, iconClassName, tooltipClassName }: Props) => {
   return (
     <TooltipProvider>
       <div className={cn("flex items-center gap-3.5", className)}>
-        {socialLinks?.map((item) => (
+        {socialLink?.map((item) => (
           <Tooltip key={item?.title}>
             <TooltipTrigger asChild>
               <Link

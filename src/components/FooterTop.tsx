@@ -10,30 +10,30 @@ interface ContactItemData {
 const data: ContactItemData[] = [
   {
     title: "Visit Us",
-    subtitle: "New Delhi, INDIA",
+    subtitle: "New Orlean, USA",
     icon: (
-      <MapPin className="h-6 w-6 text-grey-600 group-hover:text-primary transition-colors" />
+      <MapPin className="h-6 w-6 text-gray-600 group-hover:text-primary transition-colors" />
     ),
   },
   {
     title: "Call Us",
-    subtitle: "+91 7987401183",
+    subtitle: "+12 958 648 597",
     icon: (
-      <Phone className="h-6 w-6 text-grey-600 group-hover:text-primary transition-colors" />
+      <Phone className="h-6 w-6 text-gray-600 group-hover:text-primary transition-colors" />
     ),
   },
   {
     title: "Working Hours",
-    subtitle: "Mon-Sat: 10:00 AM - 7:00 PM",
+    subtitle: "Mon - Sat: 10:00 AM - 7:00 PM",
     icon: (
-      <Clock className="h-6 w-6 text-grey-600 group-hover:text-primary transition-colors" />
+      <Clock className="h-6 w-6 text-gray-600 group-hover:text-primary transition-colors" />
     ),
   },
   {
     title: "Email Us",
-    subtitle: "Shoprilla@gmail.com",
+    subtitle: "Shopcart@gmail.com",
     icon: (
-      <Mail className="h-6 w-6 text-grey-600 group-hover:text-primary transition-colors" />
+      <Mail className="h-6 w-6 text-gray-600 group-hover:text-primary transition-colors" />
     ),
   },
 ];
@@ -48,7 +48,7 @@ const FooterTop = () => {
         >
           {item?.icon}
           <div>
-            <h3 className="font-semibold text-gray-900 group-hover:text-primary hoverEffect">
+            <h3 className="font-semibold text-gray-900 group-hover:text-black hoverEffect">
               {item?.title}
             </h3>
             <p className="text-gray-600 text-sm mt-1 group-hover:text-gray-900 hoverEffect">

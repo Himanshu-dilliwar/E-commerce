@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-export function useOutSideClick<T extends HTMLElement>(callback: () => void) {
+export function useOutsideClick<T extends HTMLElement>(callback: () => void) {
   const ref = useRef<T>(null);
 
   useEffect(() => {
