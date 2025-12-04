@@ -1,9 +1,9 @@
 "use client";
-import { Product } from "../../sanity.types";
+import { Product } from "@/sanity.types";
 import { Button } from "./ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "lib/utils";
 import { ShoppingBag } from "lucide-react";
-import useStore from "@store"; 
+import useStore from "@/store";
 import toast from "react-hot-toast";
 import PriceFormatter from "./PriceFormatter";
 import QuantityButtons from "./QuantityButtons";

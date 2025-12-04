@@ -15,7 +15,7 @@
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
+      "@/*": ["./*"],
       "@sanity/*": ["sanity/*"],
       "@store": ["store.ts"],
     },
@@ -31,6 +31,6 @@
     "**/*.tsx",
     "src/**/*",
     ".next/types/**/*.ts"
-  ],
+, "app", "lib", "sanity"  ],
   "exclude": ["node_modules"]
 }
