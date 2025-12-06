@@ -1,9 +1,6 @@
 "use client";
 
-// import {
-//   createCheckoutSession,
-//   Metadata,
-// } from "@/actions/createCheckoutSession";
+
 import Container from "@/components/Container";
 import EmptyCart from "@/components/EmptyCart";
 import NoAccess from "@/components/NoAccess";
@@ -79,26 +76,106 @@ const CartPage = () => {
     }
   };
 
-  // const handleCheckout = async () => {
-  //   setLoading(true);
-  //   try {
-  //     const metadata: Metadata = {
-  //       orderNumber: crypto.randomUUID(),
-  //       customerName: user?.fullName ?? "Unknown",
-  //       customerEmail: user?.emailAddresses[0]?.emailAddress ?? "Unknown",
-  //       clerkUserId: user?.id,
-  //       address: selectedAddress,
-  //     };
-  //     const checkoutUrl = await createCheckoutSession(groupedItems, metadata);
-  //     if (checkoutUrl) {
-  //       window.location.href = checkoutUrl;
-  //     }
-  //   } catch (error) {
-  //     console.error("Error creating checkout session:", error);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+ const handleCheckout = async () => {
+  setLoading(true);
+
+  try {
+    if (!user) {
+      toast.error("Please sign in to continue.");
+      setLoading(false);
+      return;
+    }
+
+    if (!selectedAddress) {
+      toast.error("Please select a delivery address.");
+      setLoading(false);
+      return;
+    }
+
+    const metadata = {
+      orderNumber: crypto.randomUUID(),
+      customerName: user.fullName ?? "Unknown",
+      customerEmail: user.emailAddresses?.[0]?.emailAddress ?? "Unknown",
+      clerkUserId: user.id,
+      address: selectedAddress,
+    };
+
+    // we call our wrapper API which internally calls the server action createCheckoutSession
+    const res = await fetch("/api/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: groupedItems,
+        metadata,
+      }),
+    });
+
+    if (!res.ok) {
+      toast.error("Failed to create order.");
+      setLoading(false);
+      return;
+    }
+
+    const data = await res.json();
+
+    const { orderId, amount, currency, keyId } = data;
+
+    if (!orderId) {
+      toast.error("Something went wrong while creating order.");
+      setLoading(false);
+      return;
+    }
+
+    // Razorpay Checkout options
+    const options: any = {
+      key: keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      amount, // paise
+      currency,
+      name: "Your Store Name",
+      description: `Order #${metadata.orderNumber}`,
+      order_id: orderId,
+      prefill: {
+        name: metadata.customerName,
+        email: metadata.customerEmail,
+      },
+      theme: { color: "#F97316" },
+
+      handler: async function (response: any) {
+        // Verify payment on server
+        const verifyRes = await fetch("/api/confirm-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(response),
+        });
+
+        const verifyJson = await verifyRes.json();
+
+        if (!verifyRes.ok || !verifyJson.success) {
+          toast.error("Payment verification failed.");
+          return;
+        }
+
+        // SUCCESS
+        resetCart();
+        window.location.href = `/success?orderNumber=${metadata.orderNumber}`;
+      },
+    };
+
+    const rzp = new (window as any).Razorpay(options);
+    rzp.open();
+
+    rzp.on("payment.failed", () => {
+      toast.error("Payment failed. Please try another method.");
+    });
+  } catch (error) {
+    console.error(error);
+    toast.error("Unable to start checkout.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
   return (
     <div className="bg-gray-50 pb-52 md:pb-10">
       {isSignedIn ? (
@@ -235,7 +312,7 @@ const CartPage = () => {
                           className="w-full rounded-full font-semibold tracking-wide hoverEffect"
                           size="lg"
                           disabled={loading}
-                          // onClick={handleCheckout}
+                          onClick={handleCheckout}
                         >
                           {loading ? "Please wait..." : "Proceed to Checkout"}
                         </Button>
@@ -313,7 +390,7 @@ const CartPage = () => {
                         className="w-full rounded-full font-semibold tracking-wide hoverEffect"
                         size="lg"
                         disabled={loading}
-                        // onClick={handleCheckout}
+                        onClick={handleCheckout}
                       >
                         {loading ? "Please wait..." : "Proceed to Checkout"}
                       </Button>
