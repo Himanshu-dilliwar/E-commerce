@@ -8,63 +8,95 @@ export const addressType = defineType({
   icon: HomeIcon,
   fields: [
     defineField({
+      name: "clerkUserId",
+      title: "User ID",
+      type: "string",
+      validation: (Rule) => Rule.required(),
+    }),
+
+    defineField({
       name: "name",
       title: "Address Name",
       type: "string",
-      description: "A friendly name for this address (e.g. Home, Work)",
+      description: "Home, Work, etc.",
       validation: (Rule) => Rule.required().max(50),
     }),
+
     defineField({
       name: "email",
-      title: "User Email",
-      type: "email",
+      title: "Email",
+      type: "string",
     }),
+
     defineField({
       name: "address",
       title: "Street Address",
       type: "string",
-      description: "The street address including apartment/unit number",
-      validation: (Rule) => Rule.required().min(5).max(100),
+      validation: (Rule) => Rule.required().min(5).max(200),
     }),
+
     defineField({
       name: "city",
       title: "City",
       type: "string",
       validation: (Rule) => Rule.required(),
     }),
+
     defineField({
       name: "state",
-      title: "State",
+      title: "State (India)",
       type: "string",
-      description: "Two letter state code (e.g. NY, CA)",
-      validation: (Rule) => Rule.required().length(2).uppercase(),
+      options: {
+        list: [
+          { title: "Andhra Pradesh", value: "Andhra Pradesh" },
+          { title: "Assam", value: "Assam" },
+          { title: "Bihar", value: "Bihar" },
+          { title: "Chhattisgarh", value: "Chhattisgarh" },
+          { title: "Delhi", value: "Delhi" },
+          { title: "Goa", value: "Goa" },
+          { title: "Gujarat", value: "Gujarat" },
+          { title: "Haryana", value: "Haryana" },
+          { title: "Himachal Pradesh", value: "Himachal Pradesh" },
+          { title: "Jammu and Kashmir", value: "Jammu and Kashmir" },
+          { title: "Jharkhand", value: "Jharkhand" },
+          { title: "Karnataka", value: "Karnataka" },
+          { title: "Kerala", value: "Kerala" },
+          { title: "Madhya Pradesh", value: "Madhya Pradesh" },
+          { title: "Maharashtra", value: "Maharashtra" },
+          { title: "Manipur", value: "Manipur" },
+          { title: "Meghalaya", value: "Meghalaya" },
+          { title: "Mizoram", value: "Mizoram" },
+          { title: "Nagaland", value: "Nagaland" },
+          { title: "Odisha", value: "Odisha" },
+          { title: "Punjab", value: "Punjab" },
+          { title: "Rajasthan", value: "Rajasthan" },
+          { title: "Sikkim", value: "Sikkim" },
+          { title: "Tamil Nadu", value: "Tamil Nadu" },
+          { title: "Telangana", value: "Telangana" },
+          { title: "Tripura", value: "Tripura" },
+          { title: "Uttar Pradesh", value: "Uttar Pradesh" },
+          { title: "Uttarakhand", value: "Uttarakhand" },
+          { title: "West Bengal", value: "West Bengal" },
+        ],
+      },
+      validation: (Rule) => Rule.required(),
     }),
+
     defineField({
-      name: "zip",
-      title: "ZIP Code",
+      name: "pincode",
+      title: "Pincode",
       type: "string",
-      description: "Format: 12345 or 12345-6789",
       validation: (Rule) =>
-        Rule.required()
-          .regex(/^\d{5}(-\d{4})?$/, {
-            name: "zipCode",
-            invert: false,
-          })
-          .custom((zip: string | undefined) => {
-            if (!zip) {
-              return "ZIP code is required";
-            }
-            if (!zip.match(/^\d{5}(-\d{4})?$/)) {
-              return "Please enter a valid ZIP code (e.g. 12345 or 12345-6789)";
-            }
-            return true;
-          }),
+  Rule.required()
+    .regex(/^[1-9][0-9]{5}$/, { name: "pincode" })
+    .error("Pincode must be a 6-digit Indian PIN code"),
+
     }),
+
     defineField({
-      name: "default",
-      title: "Default Address",
+      name: "isDefault",
+      title: "Is Default Address?",
       type: "boolean",
-      description: "Is this the default shipping address?",
       initialValue: false,
     }),
 
@@ -75,13 +107,14 @@ export const addressType = defineType({
       initialValue: () => new Date().toISOString(),
     }),
   ],
+
   preview: {
     select: {
       title: "name",
       subtitle: "address",
       city: "city",
       state: "state",
-      isDefault: "default",
+      isDefault: "isDefault",
     },
     prepare({ title, subtitle, city, state, isDefault }) {
       return {

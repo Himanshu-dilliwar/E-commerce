@@ -1,5 +1,5 @@
-"use client";
 
+"use client";
 
 import Container from "@/components/Container";
 import EmptyCart from "@/components/EmptyCart";
@@ -29,6 +29,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import AddAddressModal from "@/components/AddAddressModal";
 
 const CartPage = () => {
   const {
@@ -44,137 +45,156 @@ const CartPage = () => {
   const { user } = useUser();
   const [addresses, setAddresses] = useState<Address[] | null>(null);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+  const [addressesLoading, setAddressesLoading] = useState(false);
 
+  // Fetch only when we have a signed-in user
   const fetchAddresses = async () => {
-    setLoading(true);
+    if (!user?.id) {
+      setAddresses(null);
+      setSelectedAddress(null);
+      return;
+    }
+
+    setAddressesLoading(true);
     try {
-      const query = `*[_type=="address"] | order(publishedAt desc)`;
-      const data = await client.fetch(query);
-      setAddresses(data);
-      const defaultAddress = data.find((addr: Address) => addr.default);
+      // Only fetch addresses belonging to the signed-in Clerk user
+      const query = `*[_type=="address" && clerkUserId == $userId] | order(createdAt desc)`;
+      const data = await client.fetch(query, { userId: user.id });
+
+      setAddresses(data ?? []);
+
+      // Prefer isDefault (schema field); fallback to first item
+      const defaultAddress = (data || []).find((addr: Address) => addr.default);
       if (defaultAddress) {
         setSelectedAddress(defaultAddress);
-      } else if (data.length > 0) {
-        setSelectedAddress(data[0]); // Optional: select first address if no default
+      } else if (data && data.length > 0) {
+        setSelectedAddress(data[0]);
+      } else {
+        setSelectedAddress(null);
       }
     } catch (error) {
       console.log("Addresses fetching error:", error);
+      toast.error("Failed to load addresses");
     } finally {
-      setLoading(false);
+      setAddressesLoading(false);
     }
   };
+
+  // Re-run when user changes (login/logout)
   useEffect(() => {
     fetchAddresses();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
   const handleResetCart = () => {
-    const confirmed = window.confirm(
-      "Are you sure you want to reset your cart?"
-    );
+    const confirmed = window.confirm("Are you sure you want to reset your cart?");
     if (confirmed) {
       resetCart();
       toast.success("Cart reset successfully!");
     }
   };
 
- const handleCheckout = async () => {
-  setLoading(true);
+  const handleCheckout = async () => {
+    setLoading(true);
 
-  try {
-    if (!user) {
-      toast.error("Please sign in to continue.");
+    try {
+      if (!user) {
+        toast.error("Please sign in to continue.");
+        setLoading(false);
+        return;
+      }
+
+      if (!selectedAddress) {
+        toast.error("Please select a delivery address.");
+        setLoading(false);
+        return;
+      }
+
+      const metadata = {
+        orderNumber: crypto.randomUUID(),
+        customerName: user.fullName ?? "Unknown",
+        customerEmail: user.emailAddresses?.[0]?.emailAddress ?? "Unknown",
+        clerkUserId: user.id,
+        address: selectedAddress,
+      };
+
+      // we call our wrapper API which internally calls the server action createCheckoutSession
+      const res = await fetch("/api/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: groupedItems,
+          metadata,
+        }),
+      });
+
+      if (!res.ok) {
+        toast.error("Failed to create order.");
+        setLoading(false);
+        return;
+      }
+
+      const data = await res.json();
+
+      const { orderId, amount, currency, keyId } = data;
+
+      if (!orderId) {
+        toast.error("Something went wrong while creating order.");
+        setLoading(false);
+        return;
+      }
+
+      // Razorpay Checkout options
+      const options: any = {
+        key: keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount, // paise
+        currency,
+        name: "Your Store Name",
+        description: `Order #${metadata.orderNumber}`,
+        order_id: orderId,
+        prefill: {
+          name: metadata.customerName,
+          email: metadata.customerEmail,
+        },
+        theme: { color: "#F97316" },
+
+        handler: async function (response: any) {
+          // Verify payment on server
+          const verifyRes = await fetch("/api/confirm-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(response),
+          });
+
+          const verifyJson = await verifyRes.json();
+
+          if (!verifyRes.ok || !verifyJson.success) {
+            toast.error("Payment verification failed.");
+            return;
+          }
+
+          // SUCCESS
+          resetCart();
+          window.location.href = `/success?orderNumber=${metadata.orderNumber}`;
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+
+      rzp.on("payment.failed", () => {
+        toast.error("Payment failed. Please try another method.");
+      });
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to start checkout.");
+    } finally {
       setLoading(false);
-      return;
     }
+  };
 
-    if (!selectedAddress) {
-      toast.error("Please select a delivery address.");
-      setLoading(false);
-      return;
-    }
-
-    const metadata = {
-      orderNumber: crypto.randomUUID(),
-      customerName: user.fullName ?? "Unknown",
-      customerEmail: user.emailAddresses?.[0]?.emailAddress ?? "Unknown",
-      clerkUserId: user.id,
-      address: selectedAddress,
-    };
-
-    // we call our wrapper API which internally calls the server action createCheckoutSession
-    const res = await fetch("/api/create-order", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        items: groupedItems,
-        metadata,
-      }),
-    });
-
-    if (!res.ok) {
-      toast.error("Failed to create order.");
-      setLoading(false);
-      return;
-    }
-
-    const data = await res.json();
-
-    const { orderId, amount, currency, keyId } = data;
-
-    if (!orderId) {
-      toast.error("Something went wrong while creating order.");
-      setLoading(false);
-      return;
-    }
-
-    // Razorpay Checkout options
-    const options: any = {
-      key: keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-      amount, // paise
-      currency,
-      name: "Your Store Name",
-      description: `Order #${metadata.orderNumber}`,
-      order_id: orderId,
-      prefill: {
-        name: metadata.customerName,
-        email: metadata.customerEmail,
-      },
-      theme: { color: "#F97316" },
-
-      handler: async function (response: any) {
-        // Verify payment on server
-        const verifyRes = await fetch("/api/confirm-payment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(response),
-        });
-
-        const verifyJson = await verifyRes.json();
-
-        if (!verifyRes.ok || !verifyJson.success) {
-          toast.error("Payment verification failed.");
-          return;
-        }
-
-        // SUCCESS
-        resetCart();
-        window.location.href = `/success?orderNumber=${metadata.orderNumber}`;
-      },
-    };
-
-    const rzp = new (window as any).Razorpay(options);
-    rzp.open();
-
-    rzp.on("payment.failed", () => {
-      toast.error("Payment failed. Please try another method.");
-    });
-  } catch (error) {
-    console.error(error);
-    toast.error("Unable to start checkout.");
-  } finally {
-    setLoading(false);
-  }
-};
-
+  // Controlled radio value
+  const selectedAddressValue = selectedAddress?._id?.toString() ?? "";
 
   return (
     <div className="bg-gray-50 pb-52 md:pb-10">
@@ -200,8 +220,7 @@ const CartPage = () => {
                             {product?.images && (
                               <Link
                                 href={`/product/${product?.slug?.current}`}
-                                className="border p-0.5 md:p-1 mr-2 rounded-md
-                                 overflow-hidden group"
+                                className="border p-0.5 md:p-1 mr-2 rounded-md overflow-hidden group"
                               >
                                 <Image
                                   src={urlFor(product?.images[0]).url()}
@@ -219,76 +238,53 @@ const CartPage = () => {
                                   {product?.name}
                                 </h2>
                                 <p className="text-sm capitalize">
-                                  Variant:{" "}
-                                  <span className="font-semibold">
-                                    {product?.variant}
-                                  </span>
+                                  Variant: <span className="font-semibold">{product?.variant}</span>
                                 </p>
                                 <p className="text-sm capitalize">
-                                  Status:{" "}
-                                  <span className="font-semibold">
-                                    {product?.status}
-                                  </span>
+                                  Status: <span className="font-semibold">{product?.status}</span>
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger>
-                                      <ProductSideMenu
-                                        product={product}
-                                        className="relative top-0 right-0"
-                                      />
+                                      <ProductSideMenu product={product} className="relative top-0 right-0" />
                                     </TooltipTrigger>
-                                    <TooltipContent className="font-bold">
-                                      Add to Favorite
-                                    </TooltipContent>
+                                    <TooltipContent className="font-bold">Add to Favorite</TooltipContent>
                                   </Tooltip>
                                   <Tooltip>
                                     <TooltipTrigger>
                                       <Trash
                                         onClick={() => {
                                           deleteCartProduct(product?._id);
-                                          toast.success(
-                                            "Product deleted successfully!"
-                                          );
+                                          toast.success("Product deleted successfully!");
                                         }}
                                         className="w-4 h-4 md:w-5 md:h-5 mr-1 text-gray-500 hover:text-red-600 hoverEffect"
                                       />
                                     </TooltipTrigger>
-                                    <TooltipContent className="font-bold bg-red-600">
-                                      Delete product
-                                    </TooltipContent>
+                                    <TooltipContent className="font-bold bg-red-600">Delete product</TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
                               </div>
                             </div>
                           </div>
                           <div className="flex flex-col items-start justify-between h-36 md:h-44 p-0.5 md:p-1">
-                            <PriceFormatter
-                              amount={(product?.price as number) * itemCount}
-                              className="font-bold text-lg"
-                            />
+                            <PriceFormatter amount={(product?.price as number) * itemCount} className="font-bold text-lg" />
                             <QuantityButtons product={product} />
                           </div>
                         </div>
                       );
                     })}
-                    <Button
-                      onClick={handleResetCart}
-                      className="m-5 font-semibold"
-                      variant="destructive"
-                    >
+                    <Button onClick={handleResetCart} className="m-5 font-semibold" variant="destructive">
                       Reset Cart
                     </Button>
                   </div>
                 </div>
+
                 <div>
                   <div className="lg:col-span-1">
                     <div className="hidden md:inline-block w-full bg-white p-6 rounded-lg border">
-                      <h2 className="text-xl font-semibold mb-4">
-                        Order Summary
-                      </h2>
+                      <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <span>SubTotal</span>
@@ -296,28 +292,24 @@ const CartPage = () => {
                         </div>
                         <div className="flex items-center justify-between">
                           <span>Discount</span>
-                          <PriceFormatter
-                            amount={getSubTotalPrice() - getTotalPrice()}
-                          />
+                          <PriceFormatter amount={getSubTotalPrice() - getTotalPrice()} />
                         </div>
                         <Separator />
                         <div className="flex items-center justify-between font-semibold text-lg">
                           <span>Total</span>
-                          <PriceFormatter
-                            amount={getTotalPrice()}
-                            className="text-lg font-bold text-black"
-                          />
+                          <PriceFormatter amount={getTotalPrice()} className="text-lg font-bold text-black" />
                         </div>
                         <Button
                           className="w-full rounded-full font-semibold tracking-wide hoverEffect"
                           size="lg"
-                          disabled={loading}
+                          disabled={loading || addressesLoading}
                           onClick={handleCheckout}
                         >
                           {loading ? "Please wait..." : "Proceed to Checkout"}
                         </Button>
                       </div>
                     </div>
+
                     {addresses && (
                       <div className="bg-white rounded-md mt-5">
                         <Card>
@@ -325,44 +317,35 @@ const CartPage = () => {
                             <CardTitle>Delivery Address</CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <RadioGroup
-                              defaultValue={addresses
-                                ?.find((addr) => addr.default)
-                                ?._id.toString()}
-                            >
+                            <RadioGroup value={selectedAddressValue} onValueChange={(val) => {
+                              const addr = addresses.find(a => a._id?.toString() === val);
+                              setSelectedAddress(addr ?? null);
+                            }}>
                               {addresses?.map((address) => (
                                 <div
                                   key={address?._id}
+                                  className={`flex items-center space-x-2 mb-4 cursor-pointer ${selectedAddress?._id === address?._id ? "text-shop_dark_green" : ""}`}
                                   onClick={() => setSelectedAddress(address)}
-                                  className={`flex items-center space-x-2 mb-4 cursor-pointer ${selectedAddress?._id === address?._id && "text-shop_dark_green"}`}
                                 >
-                                  <RadioGroupItem
-                                    value={address?._id.toString()}
-                                  />
-                                  <Label
-                                    htmlFor={`address-${address?._id}`}
-                                    className="grid gap-1.5 flex-1"
-                                  >
-                                    <span className="font-semibold">
-                                      {address?.name}
-                                    </span>
+                                  <RadioGroupItem value={address?._id.toString()} />
+                                  <Label htmlFor={`address-${address?._id}`} className="grid gap-1.5 flex-1">
+                                    <span className="font-semibold">{address?.name}</span>
                                     <span className="text-sm text-black/60">
-                                      {address.address}, {address.city},{" "}
-                                      {address.state} {address.zip}
+                                      {address.address}, {address.city}, {address.state} {address.zip}
                                     </span>
                                   </Label>
                                 </div>
                               ))}
                             </RadioGroup>
-                            <Button variant="outline" className="w-full mt-4">
-                              Add New Address
-                            </Button>
+
+                            <AddAddressModal onAdded={fetchAddresses} />
                           </CardContent>
                         </Card>
                       </div>
                     )}
                   </div>
                 </div>
+
                 {/* Order summary for mobile view */}
                 <div className="md:hidden fixed bottom-0 left-0 w-full bg-white pt-2">
                   <div className="bg-white p-4 rounded-lg border mx-4">
@@ -374,22 +357,17 @@ const CartPage = () => {
                       </div>
                       <div className="flex items-center justify-between">
                         <span>Discount</span>
-                        <PriceFormatter
-                          amount={getSubTotalPrice() - getTotalPrice()}
-                        />
+                        <PriceFormatter amount={getSubTotalPrice() - getTotalPrice()} />
                       </div>
                       <Separator />
                       <div className="flex items-center justify-between font-semibold text-lg">
                         <span>Total</span>
-                        <PriceFormatter
-                          amount={getTotalPrice()}
-                          className="text-lg font-bold text-black"
-                        />
+                        <PriceFormatter amount={getTotalPrice()} className="text-lg font-bold text-black" />
                       </div>
                       <Button
                         className="w-full rounded-full font-semibold tracking-wide hoverEffect"
                         size="lg"
-                        disabled={loading}
+                        disabled={loading || addressesLoading}
                         onClick={handleCheckout}
                       >
                         {loading ? "Please wait..." : "Proceed to Checkout"}

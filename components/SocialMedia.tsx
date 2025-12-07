@@ -1,4 +1,4 @@
-import { Facebook, Github, Linkedin, Slack, Youtube } from "lucide-react";
+import { Facebook, Github, Instagram, Linkedin, Slack, Youtube } from "lucide-react";
 import React from "react";
 import {
   Tooltip,
@@ -14,30 +14,26 @@ interface Props {
   tooltipClassName?: string;
 }
 const socialLink = [
-  {
-    title: "Youtube",
-    href: "https://www.youtube.com/@reactjsBD",
-    icon: <Youtube className="w-5 h-5" />,
-  },
+  
   {
     title: "Github",
-    href: "https://www.youtube.com/@reactjsBD",
+    href: "https://github.com/Himanshu-dilliwar",
     icon: <Github className="w-5 h-5" />,
   },
   {
     title: "Linkedin",
-    href: "https://www.youtube.com/@reactjsBD",
+    href: "https://www.linkedin.com/in/himanshud23/",
     icon: <Linkedin className="w-5 h-5" />,
   },
   {
     title: "Facebook",
-    href: "https://www.youtube.com/@reactjsBD",
+    href: "https://www.facebook.com/himanshu.dilliwar.37/",
     icon: <Facebook className="w-5 h-5" />,
   },
   {
-    title: "Slack",
-    href: "https://www.youtube.com/@reactjsBD",
-    icon: <Slack className="w-5 h-5" />,
+    title: "instagram",
+    href: "https://www.instagram.com/himanshu.d23",
+    icon: <Instagram className="w-5 h-5" />,
   },
 ];
 

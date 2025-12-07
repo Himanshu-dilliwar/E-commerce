@@ -90,16 +90,16 @@ const getBrand = async (slug: string) => {
     return null;
   }
 };
-const getMyOrders = async (userId: string) => {
+const getMyOrders = async (userId: string, email?: string) => {
   try {
-    const orders = await sanityFetch({
+    const { data } = await sanityFetch({
       query: MY_ORDERS_QUERY,
-      params: { userId },
+      params: { userId, email: email ?? "" },
     });
-    return orders?.data || null;
+    return data ?? [];
   } catch (error) {
-    console.error("Error fetching product by ID:", error);
-    return null;
+    console.error("Error fetching my orders:", error);
+    return [];
   }
 };
 const getAllBlogs = async (quantity: number) => {
