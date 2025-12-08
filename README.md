@@ -1,36 +1,179 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+📦 E-Commerce Platform — Next.js, Razorpay, Clerk, Sanity CMS
 
-## Getting Started
+A fully functional, modern e-commerce application built with Next.js 14, TypeScript, TailwindCSS, Razorpay Payments, Clerk Authentication, and Sanity CMS for product & order management.
 
-First, run the development server:
+This project simulates a real-world production setup with authentication, CRUD operations, secure payment flow, CMS-driven content, and a responsive UI.
 
-```bash
+🚀 Features
+🛍️ E-Commerce Core
+
+Product listing (CMS-powered)
+
+Product details page
+
+Add to cart functionality
+
+CRUD operations for products & orders
+
+💳 Payment Gateway (Razorpay)
+
+Secure checkout flow
+
+Server-side order creation
+
+Signature verification
+
+Payment success & failure handling
+
+Webhook-ready structure
+
+🔐 Authentication (Clerk)
+
+User login/signup
+
+Session handling
+
+Protected routes
+
+Order history for logged-in users
+
+🧵 CMS Integration (Sanity)
+
+Product management
+
+Order dashboard
+
+Real-time CMS updates
+
+GROQ queries for optimized data fetching
+
+🎨 Modern UI (Next.js + TailwindCSS)
+
+Fully responsive
+
+Clean and minimal design
+
+Smooth user experience
+
+🧰 Tech Stack
+Category	Tools
+Frontend	Next.js 14, TypeScript, React
+Styling	TailwindCSS
+Authentication	Clerk
+Payments	Razorpay
+CMS	Sanity.io
+Hosting	Coming soon (Vercel recommended)
+📂 Project Structure
+├── app/
+│   ├── (routes)/
+│   ├── api/
+│   │   ├── checkout/
+│   │   ├── verify/
+│   ├── layout.tsx
+│   └── page.tsx
+├── components/
+├── lib/
+│   ├── razorpay.ts
+│   ├── sanity.ts
+├── sanity/
+│   ├── schemas/
+│   └── config.ts
+└── utils/
+
+🚀 Getting Started
+1️⃣ Clone the Repository
+git clone https://github.com/your-username/ecommerce-razorpay-sanity.git
+cd ecommerce-razorpay-sanity
+
+2️⃣ Install Dependencies
+npm install
+
+3️⃣ Set Environment Variables
+
+Create a .env.local file:
+
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+
+SANITY_PROJECT_ID=
+SANITY_DATASET=
+SANITY_API_VERSION=
+
+SANITY_WRITE_TOKEN=
+
+4️⃣ Run the Development Server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Your app will be live at:
+👉 http://localhost:3000
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+💳 Razorpay Flow
 
-## Learn More
+User proceeds to checkout
 
-To learn more about Next.js, take a look at the following resources:
+Server creates a Razorpay order (/api/checkout)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+User pays via Razorpay widget
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Razorpay returns payment_id + order_id + signature
 
-## Deploy on Vercel
+Backend verifies signature via /api/verify
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Order is stored in Sanity CMS
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+🧵 Sanity CMS Setup
+Install Sanity CLI:
+npm install -g @sanity/cli
+
+Create CMS:
+sanity init
+
+Schemas included:
+
+product
+
+order
+
+🔐 Authentication (Clerk)
+
+Add the <ClerkProvider> in layout.tsx
+Protect routes with:
+
+import { auth } from "@clerk/nextjs";
+
+const { userId } = auth();
+if (!userId) redirect("/sign-in");
+
+📸 Screenshots
+
+(Add your images here)
+
+🖼️ Homepage
+
+🖼️ Payment Checkout
+
+🖼️ Sanity Dashboard
+
+🧪 Future Enhancements
+
+Admin dashboard (analytics, product management UI)
+
+Enhanced caching with ISR/SSR strategies
+
+Order tracking system
+
+Coupon/discount integration
+
+Improved webhook security
+
+Deployment to Vercel (coming soon)
+
+🤝 Contributing
+
+Feel free to fork this repo and submit PRs!
+
+⭐ If this project helped you, please give it a star!
