@@ -162,7 +162,7 @@ export async function POST(req: Request) {
     // event not handled - respond 200 so Razorpay considers it delivered
     console.log("Ignored razorpay event:", event.event);
     return NextResponse.json({ ok: true, message: "Ignored event" });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Webhook processing error:", err);
     // don't expose error detail to the caller
     return NextResponse.json({ ok: false }, { status: 500 });

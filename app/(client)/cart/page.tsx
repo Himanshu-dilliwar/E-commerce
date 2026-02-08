@@ -64,7 +64,7 @@ const CartPage = () => {
       setAddresses(data ?? []);
 
       // Prefer isDefault (schema field); fallback to first item
-      const defaultAddress = (data || []).find((addr: Address) => addr.default);
+      const defaultAddress = (data || []).find((addr: Address) => addr.isDefault);
       if (defaultAddress) {
         setSelectedAddress(defaultAddress);
       } else if (data && data.length > 0) {
@@ -80,6 +80,13 @@ const CartPage = () => {
     }
   };
 
+  type RazorpayHandlerResponse = {
+  razorpay_payment_id?: string;
+  razorpay_order_id?: string;
+  razorpay_signature?: string;
+  [k: string]: unknown;
+};
+
   // Re-run when user changes (login/logout)
   useEffect(() => {
     fetchAddresses();
@@ -93,6 +100,7 @@ const CartPage = () => {
       toast.success("Cart reset successfully!");
     }
   };
+  
 
   const handleCheckout = async () => {
     setLoading(true);
@@ -145,7 +153,7 @@ const CartPage = () => {
       }
 
       // Razorpay Checkout options
-      const options: any = {
+      const options: Record<string, unknown> = {
         key: keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount, // paise
         currency,
@@ -158,13 +166,16 @@ const CartPage = () => {
         },
         theme: { color: "#F97316" },
 
-        handler: async function (response: any) {
-          // Verify payment on server
-          const verifyRes = await fetch("/api/confirm-payment", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(response),
-          });
+        
+
+        
+          handler: async function (response: RazorpayHandlerResponse) {
+  // send response to server as-is (safe)
+  const verifyRes = await fetch("/api/confirm-payment", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(response),
+  });
 
           const verifyJson = await verifyRes.json();
 
@@ -331,7 +342,7 @@ const CartPage = () => {
                                   <Label htmlFor={`address-${address?._id}`} className="grid gap-1.5 flex-1">
                                     <span className="font-semibold">{address?.name}</span>
                                     <span className="text-sm text-black/60">
-                                      {address.address}, {address.city}, {address.state} {address.zip}
+                                      {address.address}, {address.city}, {address.state} {address.pincode}
                                     </span>
                                   </Label>
                                 </div>

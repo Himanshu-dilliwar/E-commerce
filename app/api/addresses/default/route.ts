@@ -33,12 +33,13 @@ export async function POST(req: Request) {
       await backendClient.patch(addressId).set({ isDefault: true }).commit();
 
       return NextResponse.json({ ok: true });
-    } catch (err: any) {
-      console.error("Failed set-default patch:", err?.responseBody ?? err?.message ?? err);
-      return NextResponse.json({ ok: false, error: "Failed to update defaults" }, { status: 500 });
-    }
-  } catch (err: any) {
-    console.error("POST /api/addresses/default error:", err?.responseBody ?? err?.message ?? err);
+    } catch (err: unknown) {
+  console.error("Failed set-default patch:", err);
+  const message = err instanceof Error ? err.message : String(err);
+  return NextResponse.json({ ok: false, error: "Failed to update defaults: " + message }, { status: 500 });
+}
+  } catch (err: unknown) {
+    console.error("POST /api/addresses/default error:");
     return NextResponse.json({ ok: false, error: "Server error" }, { status: 500 });
   }
 }

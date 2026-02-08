@@ -37,8 +37,8 @@ export async function POST(request: Request) {
     }
 
     // Build doc id used in createCheckoutSession: order_<razorpayOrderId>
-    const docId = makeSanityOrderId(razorpay_order_id);
-
+   const docId = makeSanityOrderId(razorpay_order_id);
+   
     // Payment object we want to save
     const paymentObj = {
       paymentId: razorpay_payment_id,
@@ -55,37 +55,28 @@ export async function POST(request: Request) {
       // keep metadata if provided (customerName, orderNumber, address, etc.)
       metadata: metadata ?? {},
       // record verification time
-      notes: JSON.stringify({
-        paidAt: new Date().toISOString(),
-        ...(metadata?.notes ? { previousNotes: metadata.notes } : {}),
-      }),
+      notes: JSON.stringify({ paidAt: new Date().toISOString(), ...(metadata?.notes ? { previousNotes: metadata.notes } : {}) }),
     };
 
     // Try to patch existing doc. If it doesn't exist, create a minimal one.
     try {
-      // ensure doc exists and then update
-      await backendClient.createIfNotExists({
-        _id: docId,
-        _type: "order",
-        orderId: razorpay_order_id,
-      });
       await backendClient
         .patch(docId)
         .set(patchPayload)
         .commit({ autoGenerateArrayKeys: true });
+
       console.log("Sanity order patched:", docId);
     } catch (patchErr) {
-      console.error(
-        "Patch/createIfNotExists failed in confirm-payment:",
-        patchErr
-      );
-      // try createIfNotExists with a full minimal doc
+      console.warn("Patch failed, attempting createIfNotExists:", patchErr);
+      // build minimal order doc so it exists
       const orderDoc: any = {
         _id: docId,
         _type: "order",
         orderId: razorpay_order_id,
         orderNumber: metadata?.orderNumber ?? null,
         status: "paid",
+        amount: undefined, // optional: if you have amount in metadata you can set
+        currency: "INR",
         customerName: metadata?.customerName ?? null,
         customerEmail: metadata?.customerEmail ?? null,
         userId: metadata?.clerkUserId ?? null,
@@ -100,18 +91,16 @@ export async function POST(request: Request) {
         await backendClient.createIfNotExists(orderDoc);
         console.log("Created minimal Sanity order doc:", docId);
       } catch (createErr) {
-        console.error(
-          "Failed to create Sanity order doc after patch error:",
-          createErr
-        );
+        console.error("Failed to create Sanity order doc:", createErr);
+        // don't fail verification for Sanity problems; still return success to client
       }
     }
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("confirm-payment route error:", err);
     return NextResponse.json(
-      { success: false, message: err?.message ?? "Internal error" },
+      { success: false, message: "Internal error" },
       { status: 500 }
     );
   }
